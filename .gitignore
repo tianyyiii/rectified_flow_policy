@@ -16,6 +16,8 @@ __pycache__/
 /logs/
 /output/
 
+/scripts/inspect_variance.py
+
 */.ipynb_checkpoints
 *.png
 *.ipynb

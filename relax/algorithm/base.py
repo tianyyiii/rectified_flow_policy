@@ -12,12 +12,14 @@ from relax.utils.typing import Metric
 
 class Algorithm:
     # NOTE: a not elegant blanket implementation of the algorithm interface
-    def _implement_common_behavior(self, stateless_update, stateless_get_action, stateless_get_deterministic_action, stateless_get_value=None):
+    def _implement_common_behavior(self, stateless_update, stateless_get_action, stateless_get_deterministic_action, stateless_get_value=None, stateless_get_vanilla_action=None):
         self._update = jax.jit(stateless_update)
         self._get_action = jax.jit(stateless_get_action)
         self._get_deterministic_action = jax.jit(stateless_get_deterministic_action)
         if stateless_get_value is not None:
             self._get_value = jax.jit(stateless_get_value)
+        if stateless_get_vanilla_action is not None:
+            self._get_vanilla_action = jax.jit(stateless_get_vanilla_action)
 
     def update(self, key: jax.Array, data: Experience) -> Metric:
         self.state, info = self._update(key, self.state, data)
@@ -61,6 +63,11 @@ class Algorithm:
         stochastic.save_info(root / "stochastic.txt")
         deterministic.save(root / "deterministic.pkl")
         deterministic.save_info(root / "deterministic.txt")
+
+        key = jax.random.PRNGKey(0)
+        vanilla = make_persist(self._get_vanilla_action._fun)(key, self.get_policy_params(), dummy_obs)
+        vanilla.save(root / "vanilla.pkl")
+        vanilla.save_info(root / "vanilla.txt")
 
     def get_policy_params(self):
         return self.state.params.policy

@@ -15,11 +15,17 @@ __pycache__/
 # Logs
 /logs/
 /output/
+/results/
+/figures/
+
 
 /scripts/inspect_variance.py
+/scripts/inspect_results.py
+/scripts/evaluate.py
 
 */.ipynb_checkpoints
 *.png
 *.ipynb
 *.sh
+*.out
 /relax/evaluate/

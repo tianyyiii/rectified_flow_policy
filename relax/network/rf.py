@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable, NamedTuple, Sequence, Tuple, Union
+import functools
 
 import jax, jax.numpy as jnp
 import haiku as hk
@@ -24,6 +25,7 @@ class RFNet:
     q: Callable[[hk.Params, jax.Array, jax.Array], jax.Array]
     policy: Callable[[hk.Params, jax.Array, jax.Array, jax.Array], jax.Array]
     num_timesteps: int
+    num_timesteps_test: int
     act_dim: int
     num_particles: int
     target_entropy: float
@@ -33,6 +35,10 @@ class RFNet:
     @property
     def flow(self) -> OTFlow:
         return OTFlow(self.num_timesteps)
+    
+    @property
+    def flow_test(self) -> OTFlow:
+        return OTFlow(self.num_timesteps_test)
 
     def get_action(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
         policy_params, log_alpha, q1_params, q2_params = policy_params
@@ -70,6 +76,19 @@ class RFNet:
 
         act = sample(key)
         return act
+    
+    def get_vanilla_action_step(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
+        policy_params, _, _, _ = policy_params
+
+        def model_fn(t, x):
+            return self.policy(policy_params, obs, x, t)
+
+        def sample(key: jax.Array) -> Union[jax.Array, jax.Array]:
+            act = self.flow_test.p_sample(key, model_fn, (*obs.shape[:-1], self.act_dim))
+            return act.clip(-1, 1)
+
+        act = sample(key)
+        return act
 
     def get_deterministic_action(self, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
         key = random_key_from_data(obs)
@@ -87,6 +106,7 @@ def create_rf_net(
     diffusion_hidden_sizes: Sequence[int],
     activation: Activation = jax.nn.relu,
     num_timesteps: int = 20,
+    num_timesteps_test: int = 20,
     num_particles: int = 32,
     noise_scale: float = 0.05,
     target_entropy_scale = 0.9,
@@ -111,7 +131,7 @@ def create_rf_net(
     sample_act = jnp.zeros((1, act_dim))
     params = init(key, sample_obs, sample_act)
 
-    net = RFNet(q=q.apply, policy=policy.apply, num_timesteps=num_timesteps, act_dim=act_dim, 
+    net = RFNet(q=q.apply, policy=policy.apply, num_timesteps=num_timesteps, num_timesteps_test=num_timesteps_test, act_dim=act_dim, 
                     target_entropy=-act_dim*target_entropy_scale, num_particles=num_particles, noise_scale=noise_scale,
                     noise_schedule='linear')
     return net, params

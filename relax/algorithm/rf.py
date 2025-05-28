@@ -210,7 +210,9 @@ class RF(Algorithm):
             }
             return state, info
 
-        self._implement_common_behavior(stateless_update, self.agent.get_action, self.agent.get_deterministic_action, stateless_get_vanilla_action=self.agent.get_vanilla_action)
+        self._implement_common_behavior(stateless_update, self.agent.get_action, self.agent.get_deterministic_action, 
+                                        stateless_get_vanilla_action=self.agent.get_vanilla_action, 
+                                        stateless_get_vanilla_action_step=self.agent.get_vanilla_action_step)
 
     def get_policy_params(self):
         return (self.state.params.policy, self.state.params.log_alpha, self.state.params.q1, self.state.params.q2 )

@@ -18,10 +18,11 @@ __pycache__/
 /results/
 /figures/
 
-
 /scripts/inspect_variance.py
 /scripts/inspect_results.py
 /scripts/evaluate.py
+/scripts/evaluate_rf.py
+/scripts/evaluate_sdac.py
 
 */.ipynb_checkpoints
 *.png

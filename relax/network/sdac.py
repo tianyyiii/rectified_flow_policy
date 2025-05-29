@@ -50,7 +50,7 @@ class SDACNet:
 
         key, noise_key = jax.random.split(key)
         if self.num_particles == 1:
-            act = sample(key)
+            act = sample(key)[0]
         else:
             keys = jax.random.split(key, self.num_particles)
             acts, qs = jax.vmap(sample)(keys)

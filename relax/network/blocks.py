@@ -195,6 +195,28 @@ class DACERPolicyNet(hk.Module):
         te = hk.Linear(self.time_dim)(te)
         input = jnp.concatenate((obs, act, te), axis=-1)
         return mlp(self.hidden_sizes, act_dim, self.activation, self.output_activation)(input)
+    
+@dataclass
+@fix_repr
+class DACERPolicyNet2(hk.Module):
+    hidden_sizes: Sequence[int]
+    activation: Activation
+    output_activation: Activation = Identity
+    time_dim: int = 16
+    name: str = None
+
+    def __call__(self, obs: jax.Array, act: jax.Array, r: jax.Array, t: jax.Array) -> jax.Array:
+        act_dim = act.shape[-1]
+        te1 = scaled_sinusoidal_encoding(r, dim=self.time_dim, batch_shape=obs.shape[:-1])
+        te1 = hk.Linear(self.time_dim * 2)(te1)
+        te1 = self.activation(te1)
+        te1 = hk.Linear(self.time_dim)(te1)
+        te2 = scaled_sinusoidal_encoding(t, dim=self.time_dim, batch_shape=obs.shape[:-1])
+        te2 = hk.Linear(self.time_dim * 2)(te2)
+        te2 = self.activation(te2)
+        te2 = hk.Linear(self.time_dim)(te2)
+        input = jnp.concatenate((obs, act, te1, te2), axis=-1)
+        return mlp(self.hidden_sizes, act_dim, self.activation, self.output_activation)(input)
 
 def mlp(hidden_sizes: Sequence[int], output_size: int, activation: Activation, output_activation: Activation, *, squeeze_output: bool = False) -> Callable[[jax.Array], jax.Array]:
     layers = []

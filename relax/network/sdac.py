@@ -70,14 +70,25 @@ class SDACNet:
         best_action = jax.vmap(slice, (0, 0))(batch_action, max_q_idx)
         return best_action
 
-
-
     def get_deterministic_action(self, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
         key = random_key_from_data(obs)
         policy_params, log_alpha, q1_params, q2_params = policy_params
         log_alpha = -jnp.inf
         policy_params = (policy_params, log_alpha, q1_params, q2_params)
         return self.get_action(key, policy_params, obs)
+    
+    def get_action_traj(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
+        policy_params, _, _, _ = policy_params
+
+        def model_fn(t, x):
+            return self.policy(policy_params, obs, x, t)
+
+        def sample(key: jax.Array) -> Union[jax.Array, jax.Array]:
+            act = self.diffusion.p_sample_traj(key, model_fn, (*obs.shape[:-1], self.act_dim))
+            return act
+        
+        act = sample(key)
+        return act
 
     def q_evaluate(
         self, key: jax.Array, q_params: hk.Params, obs: jax.Array, act: jax.Array

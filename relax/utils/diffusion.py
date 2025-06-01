@@ -115,6 +115,22 @@ class GaussianDiffusion:
         t = jnp.arange(self.num_timesteps)[::-1]
         x, _ = jax.lax.scan(body_fn, x, (t, noise))
         return x
+    
+    def p_sample_traj(self, key: jax.Array, model: DiffusionModel, shape: Tuple[int, ...]) -> jax.Array:
+        x_key, noise_key = jax.random.split(key)
+        x = 0.5 * jax.random.normal(x_key, shape)
+        noise = jax.random.normal(noise_key, (self.num_timesteps, *shape))
+
+        def body_fn(x, input):
+            t, noise = input
+            noise_pred = model(t, x)
+            model_mean, model_log_variance = self.p_mean_variance(t, x, noise_pred)
+            x = model_mean + (t > 0) * jnp.exp(0.5 * model_log_variance) * noise
+            return x, x
+
+        t = jnp.arange(self.num_timesteps)[::-1]
+        _, x = jax.lax.scan(body_fn, x, (t, noise))
+        return x
 
     def q_sample(self, t: int, x_start: jax.Array, noise: jax.Array):
         B = self.beta_schedule()

@@ -20,6 +20,7 @@ __pycache__/
 
 /scripts/inspect_variance.py
 /scripts/inspect_results.py
+/scripts/inspect_results_step.py
 /scripts/evaluate.py
 /scripts/evaluate_rf.py
 /scripts/evaluate_sdac.py

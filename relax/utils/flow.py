@@ -19,6 +19,7 @@ class OTFlow:
 
     def p_sample(self, key: jax.Array, model: FlowModel, shape: Tuple[int, ...]) -> jax.Array:
         x = 0.5 * jax.random.normal(key, shape)
+        #x = jax.random.normal(key, shape)
         dt = 1.0 / self.num_timesteps
         def body_fn(x, t):
             tau = t * dt
@@ -50,6 +51,17 @@ class OTFlow:
             weights = weights.reshape(-1, 1)
         assert t.ndim == 1 and t.shape[0] == x_start.shape[0]
         noise = jax.random.normal(key, x_start.shape)
+        # noise = 0.3 * jax.random.normal(key, x_start.shape)
+        x_t = jax.vmap(self.q_sample)(t, x_start, noise)
+        v_pred = model(t, x_t)
+        loss = weights * optax.squared_error(v_pred, (x_start - noise))
+        return loss.mean()
+    
+    def weighted_p_loss_coupled(self, noise: jax.Array, weights: jax.Array, model: FlowModel, t: jax.Array,
+                        x_start: jax.Array):
+        if len(weights.shape) == 1:
+            weights = weights.reshape(-1, 1)
+        assert t.ndim == 1 and t.shape[0] == x_start.shape[0]
         x_t = jax.vmap(self.q_sample)(t, x_start, noise)
         v_pred = model(t, x_t)
         loss = weights * optax.squared_error(v_pred, (x_start - noise))

@@ -54,6 +54,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_particles", type=int, default=32)
     parser.add_argument("--noise_scale", type=float, default=0.1)
     parser.add_argument("--target_entropy_scale", type=float, default=1.5)
+    parser.add_argument("--replay_buffer_size", type=int, default=int(1e6))
     parser.add_argument("--debug", action='store_true', default=False)
     parser.add_argument("--use_ema_policy", default=True, action="store_true")
     args = parser.parse_args()
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     hidden_sizes = [args.hidden_dim] * args.hidden_num
     diffusion_hidden_sizes = [args.diffusion_hidden_dim] * args.hidden_num
 
-    buffer = TreeBuffer.from_experience(obs_dim, act_dim, size=int(1e6), seed=buffer_seed)
+    buffer = TreeBuffer.from_experience(obs_dim, act_dim, size=args.replay_buffer_size, seed=buffer_seed)
 
     gelu = partial(jax.nn.gelu, approximate=False)
 

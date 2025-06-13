@@ -116,6 +116,15 @@ class GaussianDiffusion:
         x, _ = jax.lax.scan(body_fn, x, (t, noise))
         return x
     
+    def p_sample_ddim(self, key: jax.Array, model: DiffusionModel, shape: Tuple[int, ...]) -> jax.Array:
+        B = self.beta_schedule()
+        x_key, _ = jax.random.split(key)
+        x = 0.5 * jax.random.normal(x_key, shape)
+        t = self.num_timesteps - 1 
+        noise_pred = model(t, x)
+        x = (x - B.sqrt_one_minus_alphas_cumprod[t] * noise_pred) / B.sqrt_alphas_cumprod[t]
+        return x
+    
     def p_sample_traj(self, key: jax.Array, model: DiffusionModel, shape: Tuple[int, ...]) -> jax.Array:
         x_key, noise_key = jax.random.split(key)
         x = 0.5 * jax.random.normal(x_key, shape)

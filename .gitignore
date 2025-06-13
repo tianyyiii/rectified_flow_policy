@@ -25,6 +25,7 @@ __pycache__/
 /scripts/evaluate_rf.py
 /scripts/evaluate_mf.py
 /scripts/evaluate_sdac.py
+/scripts/evaluate_sdac_ddim.py
 
 */.ipynb_checkpoints
 *.png

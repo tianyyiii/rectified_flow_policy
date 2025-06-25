@@ -120,34 +120,35 @@ class MF2(Algorithm):
 
 
             def policy_loss_fn(policy_params) -> jax.Array:
-                q_min = get_min_q(next_obs, next_action)
-                q_mean, q_std = q_min.mean(), q_min.std()
-                norm_q = q_min - running_mean / running_std
-                scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
-                q_weights = jnp.exp(scaled_q)
-                def denoiser(x, r, t):
-                    return self.agent.policy(policy_params, next_obs, x, r, t)
+                # q_min = get_min_q(next_obs, next_action)
+                # q_mean, q_std = q_min.mean(), q_min.std()
+                # norm_q = q_min - running_mean / running_std
+                # scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
+                # q_weights = jnp.exp(scaled_q)
+                # def denoiser(x, r, t):
+                #     return self.agent.policy(policy_params, next_obs, x, r, t)
                 
-                r0 = jax.random.uniform(r_key, shape=(next_obs.shape[0],), minval=0.0, maxval=1.0)
-                #0.75
-                mask = jax.random.bernoulli(mask_key, p=0.0, shape=(next_obs.shape[0],))  
-                t0 = jax.random.uniform(t_key, shape=(next_obs.shape[0],), minval=0.0, maxval=1.0)
-                is_t_gt_r = t0 > r0
-                t_swap = jnp.where(is_t_gt_r, t0, r0)
-                r_swap = jnp.where(is_t_gt_r, r0, t0)
-                r_final = jnp.where(mask, r0, r_swap)
-                t_final = jnp.where(mask, r0, t_swap)
+                # r0 = jax.random.uniform(r_key, shape=(next_obs.shape[0],), minval=0.0, maxval=1.0)
+                # #0.75
+                # mask = jax.random.bernoulli(mask_key, p=0.0, shape=(next_obs.shape[0],))  
+                # t0 = jax.random.uniform(t_key, shape=(next_obs.shape[0],), minval=0.0, maxval=1.0)
+                # is_t_gt_r = t0 > r0
+                # t_swap = jnp.where(is_t_gt_r, t0, r0)
+                # r_swap = jnp.where(is_t_gt_r, r0, t0)
+                # r_final = jnp.where(mask, r0, r_swap)
+                # t_final = jnp.where(mask, r0, t_swap)
 
-                loss = self.agent.flow.weighted_p_loss(flow_noise_key, q_weights, denoiser, r_final, t_final,
-                                                            jax.lax.stop_gradient(next_action))
+                # loss = self.agent.flow.weighted_p_loss(flow_noise_key, q_weights, denoiser, r_final, t_final,
+                #                                             jax.lax.stop_gradient(next_action))
 
-                # acts = self.agent.get_vanilla_action(acts_key, (policy_params, log_alpha, q1_params, q2_params), obs)
-                # q1_target = self.agent.q(target_q1_params, obs, acts)
-                # q2_target = self.agent.q(target_q2_params, obs, acts)
-                # q_target = jnp.minimum(q1_target, q2_target)
-                # loss += jnp.mean(-0.1 * q_target)
+                acts = self.agent.get_vanilla_action(acts_key, (policy_params, log_alpha, q1_params, q2_params), obs)
+                q1_target = self.agent.q(target_q1_params, obs, acts)
+                q2_target = self.agent.q(target_q2_params, obs, acts)
+                q_target = jnp.minimum(q1_target, q2_target)
+                loss = jnp.mean(-q_target)
 
-                return loss, (q_weights, scaled_q, q_mean, q_std)
+                # return loss, (q_weights, scaled_q, q_mean, q_std)
+                return loss, (0, 0, 0, 0)
 
             (total_loss, (q_weights, scaled_q, q_mean, q_std)), policy_grads = jax.value_and_grad(policy_loss_fn, has_aux=True)(policy_params)
 

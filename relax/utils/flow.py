@@ -41,6 +41,11 @@ class OTFlow:
         t_seq = jnp.arange(self.num_timesteps)
         _, x = jax.lax.scan(body_fn, x, t_seq)
         return x
+    
+    def p_sample_fast(self, model: FlowModel, shape: Tuple[int, ...]) -> jax.Array:
+        x = jnp.zeros(shape)
+        drift = model(0, x)
+        return drift
 
     def q_sample(self, t: int, x_start: jax.Array, noise: jax.Array):
         return t * x_start + (1 - t) * noise

@@ -12,11 +12,16 @@ from relax.utils.typing import Metric
 
 class Algorithm:
     # NOTE: a not elegant blanket implementation of the algorithm interface
-    def _implement_common_behavior(self, stateless_update, stateless_get_action, stateless_get_action_full, stateless_get_deterministic_action, 
-                                   stateless_get_value=None, stateless_get_vanilla_action=None,
+    def _implement_common_behavior(self, stateless_update, stateless_get_action, stateless_get_deterministic_action, 
+                                   stateless_get_action_full=None, 
+                                   stateless_get_value=None, 
+                                   stateless_get_vanilla_action=None,
                                    stateless_get_vanilla_action_step=None):
         self._update = jax.jit(stateless_update)
-        self._get_action = jax.jit(stateless_get_action_full)
+        if stateless_get_action_full:
+            self._get_action = jax.jit(stateless_get_action_full)
+        else:
+            self._get_action = jax.jit(stateless_get_action)
         self._get_deterministic_action = jax.jit(stateless_get_deterministic_action)
         if stateless_get_value is not None:
             self._get_value = jax.jit(stateless_get_value)

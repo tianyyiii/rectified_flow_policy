@@ -218,7 +218,8 @@ class RF_V(Algorithm):
             }
             return state, info
 
-        self._implement_common_behavior(stateless_update, self.agent.get_action, self.agent.get_action_full, self.agent.get_deterministic_action, 
+        self._implement_common_behavior(stateless_update, self.agent.get_action, self.agent.get_deterministic_action, 
+                                        stateless_get_action_full=self.agent.get_action_full,
                                         stateless_get_vanilla_action=self.agent.get_vanilla_action, 
                                         stateless_get_vanilla_action_step=self.agent.get_vanilla_action_step)
 

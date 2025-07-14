@@ -36,6 +36,22 @@ class QNet(hk.Module):
     def __call__(self, obs: jax.Array, act: jax.Array) -> jax.Array:
         input = jnp.concatenate((obs, act), axis=-1)
         return mlp(self.hidden_sizes, 1, self.activation, self.output_activation, squeeze_output=True)(input)
+    
+@dataclass
+@fix_repr
+class QNet_V(hk.Module):
+    hidden_sizes: Sequence[int]
+    activation: Activation
+    output_activation: Activation = Identity
+    feature_dim: int = 50
+    name: str = None
+
+    def __call__(self, obs: jax.Array, act: jax.Array) -> jax.Array:
+        x = hk.Linear(self.feature_dim)(obs)
+        x = hk.LayerNorm(axis=-1, create_scale=True, create_offset=True)(x)
+        x = jax.nn.tanh(x)
+        input = jnp.concatenate((x, act), axis=-1)
+        return mlp(self.hidden_sizes, 1, self.activation, self.output_activation, squeeze_output=True)(input)
 
 
 @dataclass
@@ -217,6 +233,41 @@ class DACERPolicyNet2(hk.Module):
         te2 = hk.Linear(self.time_dim)(te2)
         input = jnp.concatenate((obs, act, te1, te2), axis=-1)
         return mlp(self.hidden_sizes, act_dim, self.activation, self.output_activation)(input)
+    
+@dataclass
+@fix_repr
+class DACERPolicyNet_V(hk.Module):
+    hidden_sizes: Sequence[int]
+    activation: Activation
+    output_activation: Activation = Identity
+    time_dim: int = 16
+    feature_dim: int = 50
+    name: str = None
+
+    def __call__(self, obs: jax.Array, act: jax.Array, t: jax.Array) -> jax.Array:
+        act_dim = act.shape[-1]
+        te = scaled_sinusoidal_encoding(t, dim=self.time_dim, batch_shape=obs.shape[:-1])
+        te = hk.Linear(self.time_dim * 2)(te)
+        te = self.activation(te)
+        te = hk.Linear(self.time_dim)(te)
+        x = hk.Linear(self.feature_dim)(obs)
+        x = hk.LayerNorm(axis=-1, create_scale=True, create_offset=True)(x)
+        x = jax.nn.tanh(x)
+        input = jnp.concatenate((x, act, te), axis=-1)
+        return mlp(self.hidden_sizes, act_dim, self.activation, self.output_activation)(input)
+
+@dataclass
+@fix_repr
+class EncoderNet(hk.Module):
+    repr_dim : int = 32 * 35 * 35
+    name : str = None
+    def __call__(self, obs: jnp.ndarray) -> jnp.ndarray:
+        x = obs.astype(jnp.float32) / 255.0 - 0.5
+        x = jnp.reshape(x, (-1, 9, 84, 84))
+        h = convnet(hidden_num=3, output_channels=32, kernel_shape=3, activation=jax.nn.relu)(x)
+        h = jnp.reshape(h, [h.shape[0], -1])
+        return jnp.squeeze(h)
+
 
 def mlp(hidden_sizes: Sequence[int], output_size: int, activation: Activation, output_activation: Activation, *, squeeze_output: bool = False) -> Callable[[jax.Array], jax.Array]:
     layers = []
@@ -227,6 +278,12 @@ def mlp(hidden_sizes: Sequence[int], output_size: int, activation: Activation, o
         layers.append(partial(jnp.squeeze, axis=-1))
     return hk.Sequential(layers)
 
+def convnet(hidden_num: int, output_channels: int, kernel_shape: int, activation: Activation):
+    layers = []
+    layers += [hk.Conv2D(output_channels=output_channels, kernel_shape=kernel_shape, stride=2, padding='VALID', data_format='NCHW'), activation]
+    for _ in range(hidden_num):
+        layers += [hk.Conv2D(output_channels=output_channels, kernel_shape=kernel_shape, stride=1, padding='VALID', data_format='NCHW'), activation]
+    return hk.Sequential(layers)
 
 def scaled_sinusoidal_encoding(t: jax.Array, *, dim: int, theta: int = 10000, batch_shape = None) -> jax.Array:
     assert dim % 2 == 0

@@ -24,15 +24,17 @@ class ProcessVectorEnv(VectorEnv):
         self.num_workers = num_workers
         self.env_per_worker = num_envs // num_workers
 
+        if name.startswith('dm_control'):
+            from relax.env.dmc.register import register_dm_control_envs
+            register_dm_control_envs()
         dummy_env = gymnasium.make(name)
         self.single_observation_space = dummy_env.observation_space
         self.single_action_space = dummy_env.action_space
         dummy_env.close()
 
         self.spec = dummy_env.unwrapped.spec
-
         assert isinstance(self.single_observation_space, Box) and len(self.single_observation_space.shape) == 1
-        assert isinstance(self.single_action_space, Box) and len(self.single_action_space.shape) == 1 and self.single_action_space.is_bounded()
+        assert isinstance(self.single_action_space, Box) and len(self.single_action_space.shape) == 1 
 
         self.obs_dim = self.single_observation_space.shape[0]
         self.act_dim = self.single_action_space.shape[0]

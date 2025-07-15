@@ -74,13 +74,15 @@ class Algorithm:
         deterministic.save_info(root / "deterministic.txt")
 
         key = jax.random.PRNGKey(0)
-        vanilla = make_persist(self._get_vanilla_action._fun)(key, self.get_policy_params(), dummy_obs)
-        vanilla.save(root / "vanilla.pkl")
-        vanilla.save_info(root / "vanilla.txt")
+        if getattr(self, "_get_vanilla_action", None):
+            vanilla = make_persist(self._get_vanilla_action._fun)(key, self.get_policy_params(), dummy_obs)
+            vanilla.save(root / "vanilla.pkl")
+            vanilla.save_info(root / "vanilla.txt")
 
-        vanilla_step = make_persist(self._get_vanilla_action_step._fun)(key, self.get_policy_params(), dummy_obs)
-        vanilla_step.save(root / "vanilla_test.pkl")
-        vanilla_step.save_info(root / "vanilla_test.txt")
+        if getattr(self, "_get_vanilla_action_step", None):
+            vanilla_step = make_persist(self._get_vanilla_action_step._fun)(key, self.get_policy_params(), dummy_obs)
+            vanilla_step.save(root / "vanilla_test.pkl")
+            vanilla_step.save_info(root / "vanilla_test.txt")
 
     def get_policy_params(self):
         return self.state.params.policy

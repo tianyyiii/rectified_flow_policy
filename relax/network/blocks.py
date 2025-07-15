@@ -121,6 +121,42 @@ class PolicyNet(hk.Module):
             return mean, log_std
         else:
             return mean, jnp.exp(log_std)
+        
+@dataclass
+@fix_repr
+class PolicyNet_V(hk.Module):
+    act_dim: int
+    hidden_sizes: Sequence[int]
+    activation: Activation
+    output_activation: Activation = Identity
+    min_log_std: float = -20.0
+    max_log_std: float = 0.5
+    log_std_mode: Union[str, float] = 'shared'  # shared, separate, global (provide initial value)
+    feature_dim: int = 50
+    name: str = None
+
+    def __call__(self, obs: jax.Array, *, return_log_std: bool = False) -> jax.Array:
+        obs = hk.Linear(self.feature_dim)(obs)
+        obs = hk.LayerNorm(axis=-1, create_scale=True, create_offset=True)(obs)
+        obs = jax.nn.tanh(obs)
+        if self.log_std_mode == 'shared':
+            output = mlp(self.hidden_sizes, self.act_dim * 2, self.activation, self.output_activation)(obs)
+            mean, log_std = jnp.split(output, 2, axis=-1)
+        elif self.log_std_mode == 'separate':
+            mean = mlp(self.hidden_sizes, self.act_dim, self.activation, self.output_activation)(obs)
+            log_std = mlp(self.hidden_sizes, self.act_dim, self.activation, self.output_activation)(obs)
+        else:
+            initial_log_std = float(self.log_std_mode)
+            mean = mlp(self.hidden_sizes, self.act_dim, self.activation, self.output_activation)(obs)
+            log_std = hk.get_parameter('log_std', shape=(self.act_dim,), init=Constant(initial_log_std))
+            log_std = jnp.broadcast_to(log_std, mean.shape)
+        if not (self.min_log_std is None and self.max_log_std is None):
+            log_std = jnp.clip(log_std, self.min_log_std, self.max_log_std)
+        if return_log_std:
+            return mean, log_std
+        else:
+            return mean, jnp.exp(log_std)
+        
 
 @dataclass
 @fix_repr

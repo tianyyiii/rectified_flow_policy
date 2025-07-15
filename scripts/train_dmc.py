@@ -8,6 +8,7 @@ import yaml
 import jax, jax.numpy as jnp
 
 from relax.algorithm.sac import SAC
+from relax.algorithm.sac_v import SAC_V
 from relax.algorithm.dacer import DACER
 from relax.algorithm.qsm import QSM
 from relax.algorithm.dipo import DIPO
@@ -16,6 +17,7 @@ from relax.algorithm.sdac import SDAC
 from relax.algorithm.rf_v import RF_V
 from relax.buffer import TreeBuffer
 from relax.network.sac import create_sac_net
+from relax.network.sac_v import create_sac_net_visual
 from relax.network.dacer import create_dacer_net
 from relax.network.qsm import create_qsm_net
 from relax.network.dipo import create_dipo_net
@@ -113,6 +115,9 @@ if __name__ == "__main__":
     elif args.alg == "sac":
         agent, params = create_sac_net(init_network_key, obs_dim, act_dim, hidden_sizes, gelu)
         algorithm = SAC(agent, params, lr=args.lr)
+    elif args.alg == "sac_v":
+        agent, params = create_sac_net_visual(init_network_key, obs_dim, latent_obs_dim, act_dim, hidden_sizes, gelu)
+        algorithm = SAC_V(agent, params, lr=args.lr)
     elif args.alg == "dsact":
         agent, params = create_dsact_net(init_network_key, obs_dim, act_dim, hidden_sizes, gelu)
         algorithm = DSACT(agent, params, lr=args.lr)

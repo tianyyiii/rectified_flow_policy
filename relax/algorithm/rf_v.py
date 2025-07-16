@@ -28,6 +28,31 @@ class Diffv2TrainState(NamedTuple):
     running_mean: float
     running_std: float
 
+@jax.jit
+def augment_batch(obs: jnp.ndarray,
+                  next_obs: jnp.ndarray,
+                  obs_key: jax.Array,
+                  next_obs_key: jax.Array,
+                  padding: int = 4
+                 ) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    
+    def random_crop(key, img, padding):
+        crop_from = jax.random.randint(key, (2, ), 0, 2 * padding + 1)
+        crop_from = jnp.concatenate([crop_from, jnp.zeros((1, ), dtype=jnp.int32)])
+        padded_img = jnp.pad(img, ((padding, padding), (padding, padding), (0, 0)),
+                            mode='edge')
+        return jax.lax.dynamic_slice(padded_img, crop_from, img.shape)
+    
+    obs_keys = jax.random.split(obs_key, obs.shape[0])
+    obs = jnp.reshape(obs, (obs.shape[0], 84, 84, -1))
+    obs = jax.vmap(random_crop, (0, 0, None))(obs_keys, obs, padding)
+
+    next_obs_keys = jax.random.split(next_obs_key, next_obs.shape[0])
+    next_obs = jnp.reshape(next_obs, (next_obs.shape[0], 84, 84, -1))
+    next_obs = jax.vmap(random_crop, (0, 0, None))(next_obs_keys, next_obs, padding)
+
+    return jnp.squeeze(jnp.reshape(obs, (obs.shape[0], -1))), jnp.squeeze(jnp.reshape(next_obs, (next_obs.shape[0], -1)))
+
 class RF_V(Algorithm):
 
     def __init__(
@@ -92,9 +117,10 @@ class RF_V(Algorithm):
             step = state.step
             running_mean = state.running_mean
             running_std = state.running_std
-            next_eval_key, new_eval_key, new_q1_eval_key, new_q2_eval_key, log_alpha_key, flow_time_key, flow_noise_key = jax.random.split(
-                key, 7)
+            next_eval_key, obs_aug_key, next_obs_aug_key, flow_time_key, flow_noise_key = jax.random.split(key, 5)
 
+            # data augmentation
+            obs, next_obs = augment_batch(obs, next_obs, obs_aug_key, next_obs_aug_key)
             reward *= self.reward_scale
             next_obs = jax.lax.stop_gradient(self.agent.encoder(encoder_params, next_obs))
 

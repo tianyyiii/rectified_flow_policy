@@ -44,17 +44,20 @@ def augment_batch(obs: jnp.ndarray,
         return jax.lax.dynamic_slice(padded_img, crop_from, img.shape)
     
     obs_keys = jax.random.split(obs_key, obs.shape[0])
-    obs = jnp.reshape(obs, (obs.shape[0], 84, 84, -1))
+    obs = jnp.reshape(obs, (obs.shape[0], -1, 84, 84))
+    obs = obs.transpose((0, 2, 3, 1))
     obs = jax.vmap(random_crop, (0, 0, None))(obs_keys, obs, padding)
+    obs = obs.transpose((0, 3, 1, 2))
 
     next_obs_keys = jax.random.split(next_obs_key, next_obs.shape[0])
-    next_obs = jnp.reshape(next_obs, (next_obs.shape[0], 84, 84, -1))
+    next_obs = jnp.reshape(next_obs, (next_obs.shape[0], -1, 84, 84))
+    next_obs = next_obs.transpose((0, 2, 3, 1))
     next_obs = jax.vmap(random_crop, (0, 0, None))(next_obs_keys, next_obs, padding)
+    next_obs = next_obs.transpose((0, 3, 1, 2))
 
     return jnp.squeeze(jnp.reshape(obs, (obs.shape[0], -1))), jnp.squeeze(jnp.reshape(next_obs, (next_obs.shape[0], -1)))
 
 class RF_V(Algorithm):
-
     def __init__(
         self,
         agent: RFNet_V,
@@ -121,6 +124,7 @@ class RF_V(Algorithm):
 
             # data augmentation
             obs, next_obs = augment_batch(obs, next_obs, obs_aug_key, next_obs_aug_key)
+
             reward *= self.reward_scale
             next_obs = jax.lax.stop_gradient(self.agent.encoder(encoder_params, next_obs))
 

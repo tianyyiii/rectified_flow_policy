@@ -115,6 +115,9 @@ class RF_V(Algorithm):
             key: jax.Array, state: Diffv2TrainState, data: Tuple
         ) -> Tuple[Diffv2OptStates, Metric]:
             obs, action, reward, next_obs, discount = data
+            action = np.squeeze(action)
+            reward = np.squeeze(reward)
+            discount = np.squeeze(discount)
             q1_params, q2_params, target_q1_params, target_q2_params, policy_params, target_policy_params, log_alpha, encoder_params = state.params
             q1_opt_state, q2_opt_state, policy_opt_state, log_alpha_opt_state, encoder_opt_state = state.opt_state
             step = state.step

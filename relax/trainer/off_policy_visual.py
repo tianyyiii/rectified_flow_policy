@@ -173,11 +173,6 @@ class OffPolicyTrainer:
         ul = self.update_log
         data = next(self.replay_iter)
         
-        if random.random() < 0.01:
-            obs, action, reward, next_obs, discount = data
-            print(action[0])
-            print(reward[0])
-            print(discount[0])
         info = self.algorithm.update(update_key, data)
 
         ul.add(info)

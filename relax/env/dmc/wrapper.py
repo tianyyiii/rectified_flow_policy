@@ -23,7 +23,7 @@ class DMControlToGymWrapper(gym.Env):
         )
         obs_dim = np.prod(self.observation_spec.shape).astype(int)
         self.observation_space = spaces.Box(
-            low=0, high=255, shape=(obs_dim,), dtype=np.float32
+            low=0, high=255, shape=(obs_dim,), dtype=np.uint8
         )
 
     def _flatten_observation(self, time_step):
@@ -33,11 +33,11 @@ class DMControlToGymWrapper(gym.Env):
         if seed is not None:
             np.random.seed(seed)
         time_step = self.env.reset()
-        return self._flatten_observation(time_step).astype(np.float32), {}
+        return self._flatten_observation(time_step), {}
 
     def step(self, action):
         time_step = self.env.step(action)
-        obs = self._flatten_observation(time_step).astype(np.float32)
+        obs = self._flatten_observation(time_step)
         reward = time_step.reward if time_step.reward is not None else 0.0
         terminated = time_step.step_type == StepType.LAST
         truncated = False  # DMC does not define truncation explicitly

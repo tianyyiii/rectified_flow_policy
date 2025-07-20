@@ -70,7 +70,7 @@ class RF_V(Algorithm):
         tau: float = 0.005,
         delay_alpha_update: int = 250,
         delay_update: int = 2,
-        reward_scale: float = 0.2,
+        reward_scale: float = 1.0,
         num_samples: int = 200,
         use_ema: bool = True,
     ):
@@ -112,9 +112,9 @@ class RF_V(Algorithm):
 
         @jax.jit
         def stateless_update(
-            key: jax.Array, state: Diffv2TrainState, data: Experience
+            key: jax.Array, state: Diffv2TrainState, data: Tuple
         ) -> Tuple[Diffv2OptStates, Metric]:
-            obs, action, reward, next_obs, done = data.obs, data.action, data.reward, data.next_obs, data.done
+            obs, action, reward, next_obs, discount = data
             q1_params, q2_params, target_q1_params, target_q2_params, policy_params, target_policy_params, log_alpha, encoder_params = state.params
             q1_opt_state, q2_opt_state, policy_opt_state, log_alpha_opt_state, encoder_opt_state = state.opt_state
             step = state.step
@@ -138,7 +138,7 @@ class RF_V(Algorithm):
             q1_target = self.agent.q(target_q1_params, next_obs, next_action)
             q2_target = self.agent.q(target_q2_params, next_obs, next_action)
             q_target = jnp.minimum(q1_target, q2_target)  # - jnp.exp(log_alpha) * next_logp
-            q_backup = reward + (1 - done) * self.gamma * q_target
+            q_backup = reward + discount * q_target
 
             def q_loss_fn(q1_params: hk.Params, q2_params: hk.Params, encoder_params: hk.Params) -> jax.Array:
                 obs_latent = self.agent.encoder(encoder_params, obs)
@@ -267,3 +267,12 @@ class RF_V(Algorithm):
     def get_action(self, key: jax.Array, obs: np.ndarray) -> np.ndarray:
         action = self._get_action(key, self.get_policy_params_to_save(), obs)
         return np.asarray(action)
+    
+    def warmup(self, data: tuple) -> None:
+        key = jax.random.key(0)
+        obs, _, _, _, _ = data
+        obs = obs[0]
+        policy_params = self.get_policy_params()
+        self._update(key, self.state, data)
+        self._get_action(key, policy_params, obs)
+        self._get_deterministic_action(policy_params, obs)

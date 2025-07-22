@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--diffusion_steps_test", type=int, default=20)
     parser.add_argument("--diffusion_hidden_dim", type=int, default=256)
     parser.add_argument("--start_step", type=int, default=int(3e4)) # other envs 3e4
-    parser.add_argument("--total_step", type=int, default=int(1e6))
+    parser.add_argument("--total_step", type=int, default=int(5e5)) #1e6
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--lr_schedule_end", type=float, default=3e-5)
     parser.add_argument("--alpha_lr", type=float, default=7e-3)

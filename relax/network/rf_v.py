@@ -122,6 +122,8 @@ class RFNet_V:
         return act
 
     def get_vanilla_action_fast(self, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
+        policy_params, _, _, _, encoder_params = policy_params
+        obs = self.encoder(encoder_params, obs)
 
         def model_fn(t, x):
             return self.policy(policy_params, obs, x, t)

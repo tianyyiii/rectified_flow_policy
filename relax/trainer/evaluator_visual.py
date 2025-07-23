@@ -20,8 +20,6 @@ def evaluate(env, policy_fn, policy_params, num_episodes):
     ep_ret_list = []
     for _ in range(num_episodes):
         obs, _ = env.reset()
-        print(obs.shape, "obs")
-        print(obs.dtype)
         ep_len = 0
         ep_ret = 0.0
         while True:

@@ -129,6 +129,7 @@ class RF_V(Algorithm):
             obs, next_obs = augment_batch(obs, next_obs, obs_aug_key, next_obs_aug_key)
 
             reward *= self.reward_scale
+            reward = jnp.log(1.0 + reward)
             next_obs = jax.lax.stop_gradient(self.agent.encoder(encoder_params, next_obs))
 
             def get_min_q(s, a):

@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--n_step", type=int, default=3)
+    parser.add_argument("--reward_scale", type=float, default=1.0)
     args = parser.parse_args()
 
     if args.debug:
@@ -90,19 +91,7 @@ if __name__ == "__main__":
 
     gelu = partial(jax.nn.gelu, approximate=False)
 
-    if args.alg == 'sdac':
-        def mish(x: jax.Array):
-            return x * jnp.tanh(jax.nn.softplus(x))
-        agent, params = create_sdac_net(init_network_key, obs_dim, act_dim, hidden_sizes, diffusion_hidden_sizes, mish,
-                                          num_timesteps=args.diffusion_steps, 
-                                          num_particles=args.num_particles, 
-                                          noise_scale=args.noise_scale,
-                                          target_entropy_scale=args.target_entropy_scale)
-        algorithm = SDAC(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 
-                           delay_alpha_update=args.delay_alpha_update,
-                             lr_schedule_end=args.lr_schedule_end,
-                             use_ema=args.use_ema_policy)
-    elif args.alg == 'rf_v':
+    if args.alg == 'rf_v':
         def mish(x: jax.Array):
             return x * jnp.tanh(jax.nn.softplus(x))
         agent, params = create_rf_net_visual(init_network_key, obs_dim, latent_obs_dim, act_dim, hidden_sizes, diffusion_hidden_sizes, mish,
@@ -114,7 +103,8 @@ if __name__ == "__main__":
         algorithm = RF_V(agent, params, gamma=args.gamma, lr=args.lr, alpha_lr=args.alpha_lr, 
                            delay_alpha_update=args.delay_alpha_update,
                              lr_schedule_end=args.lr_schedule_end,
-                             use_ema=args.use_ema_policy)
+                             use_ema=args.use_ema_policy,
+                             reward_scale=args.reward_scale)
     elif args.alg == 'mf2_v':
         def mish(x: jax.Array):
             return x * jnp.tanh(jax.nn.softplus(x))
@@ -127,7 +117,8 @@ if __name__ == "__main__":
         algorithm = MF2_V(agent, params, gamma=args.gamma, lr=args.lr, alpha_lr=args.alpha_lr, 
                            delay_alpha_update=args.delay_alpha_update,
                              lr_schedule_end=args.lr_schedule_end,
-                             use_ema=args.use_ema_policy)
+                             use_ema=args.use_ema_policy,
+                             reward_scale=args.reward_scale)
     elif args.alg == "sac_v":
         agent, params = create_sac_net_visual(init_network_key, obs_dim, latent_obs_dim, act_dim, hidden_sizes, gelu)
         algorithm = SAC_V(agent, params, lr=args.lr)

@@ -105,6 +105,20 @@ class MFNet_V:
         act = sample(key)
         return act
     
+    def get_vanilla_action_fast(self, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
+        policy_params, _, _, _, encoder_params = policy_params
+        obs = self.encoder(encoder_params, obs)
+
+        def model_fn(x, r, t):
+            return self.policy(policy_params, obs, x, r, t)
+
+        def sample() -> Union[jax.Array, jax.Array]:
+            act = self.flow.p_sample_fast(model_fn, (*obs.shape[:-1], self.act_dim))
+            return act.clip(-1, 1)
+
+        act = sample()
+        return act
+    
     def get_vanilla_action_step(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
         policy_params, _, _, _, encoder_params = policy_params
         obs = self.encoder(encoder_params, obs)

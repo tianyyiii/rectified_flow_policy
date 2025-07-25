@@ -28,6 +28,7 @@ __pycache__/
 /scripts/evaluate_sdac.py
 /scripts/evaluate_sdac_ddim.py
 /scripts/evaluate_rf_v.py
+/scripts/evaluate_mf_v.py
 /scripts/render_rf_v.py
 
 */.ipynb_checkpoints

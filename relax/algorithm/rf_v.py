@@ -129,7 +129,7 @@ class RF_V(Algorithm):
             obs, next_obs = augment_batch(obs, next_obs, obs_aug_key, next_obs_aug_key)
 
             reward *= self.reward_scale
-            reward = jnp.log(1.0 + reward)
+            # reward = jnp.log(1.0 + reward)
             next_obs = jax.lax.stop_gradient(self.agent.encoder(encoder_params, next_obs))
 
             def get_min_q(s, a):
@@ -164,7 +164,7 @@ class RF_V(Algorithm):
             def policy_loss_fn(policy_params) -> jax.Array:
                 q_min = get_min_q(next_obs, next_action)
                 q_mean, q_std = q_min.mean(), q_min.std()
-                norm_q = q_min - running_mean / running_std
+                norm_q = (q_min - running_mean) / running_std
                 scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
                 q_weights = jnp.exp(scaled_q)
                 def denoiser(t, x):

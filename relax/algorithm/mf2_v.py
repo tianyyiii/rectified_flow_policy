@@ -152,15 +152,16 @@ class MF2_V(Algorithm):
                 q2 = self.agent.q(q2_params, obs_latent, action)
                 q2_loss = jnp.mean((q2 - q_backup) ** 2)
                 q_loss = q1_loss + q2_loss
-                return q_loss, (q1_loss, q2_loss, q1, q2)
+                return q_loss, (q1_loss, q2_loss, q1, q2, obs_latent)
             
-            (q_loss, (q1_loss, q2_loss, q1, q2)), (q1_grads, q2_grads, encoder_grads) = jax.value_and_grad(q_loss_fn, argnums=(0, 1, 2), has_aux=True)(q1_params, q2_params, encoder_params)
+            (q_loss, (q1_loss, q2_loss, q1, q2, obs_latent)), (q1_grads, q2_grads, encoder_grads) = jax.value_and_grad(q_loss_fn, argnums=(0, 1, 2), has_aux=True)(q1_params, q2_params, encoder_params)
             q1_update, q1_opt_state = self.optim.update(q1_grads, q1_opt_state)
             q2_update, q2_opt_state = self.optim.update(q2_grads, q2_opt_state)
             encoder_update, encoder_opt_state = self.optim.update(encoder_grads, encoder_opt_state)
             q1_params = optax.apply_updates(q1_params, q1_update)
             q2_params = optax.apply_updates(q2_params, q2_update)
             encoder_params = optax.apply_updates(encoder_params, encoder_update)
+            obs_latent = jax.lax.stop_gradient(obs_latent)
 
             def policy_loss_fn(policy_params) -> jax.Array:
                 # q_min = get_min_q(next_obs, next_action)
@@ -185,9 +186,9 @@ class MF2_V(Algorithm):
                 #                                             jax.lax.stop_gradient(next_action))
                 
                 #obs
-                acts = self.agent.get_vanilla_action(acts_key, (policy_params, log_alpha, q1_params, q2_params, encoder_params), next_obs)
-                q1_target = self.agent.q(target_q1_params, next_obs, acts)
-                q2_target = self.agent.q(target_q2_params, next_obs, acts)
+                acts = self.agent.get_vanilla_action(acts_key, (policy_params, log_alpha, q1_params, q2_params, encoder_params), obs_latent)
+                q1_target = self.agent.q(target_q1_params, obs_latent, acts)
+                q2_target = self.agent.q(target_q2_params, obs_latent, acts)
                 q_target = jnp.minimum(q1_target, q2_target)
                 loss = jnp.mean(-q_target)
 

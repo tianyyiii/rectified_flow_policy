@@ -4,6 +4,7 @@ from pathlib import Path
 import time
 from functools import partial
 import yaml
+import gc
 
 import jax, jax.numpy as jnp
 import numpy as np
@@ -52,8 +53,9 @@ if __name__ == "__main__":
     parser.add_argument("--use_ema_policy", default=True, action="store_true")
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--n_step", type=int, default=3)
+    parser.add_argument("--n_step", type=int, default=1)
     parser.add_argument("--reward_scale", type=float, default=1.0)
+    parser.add_argument("--sample_per_iteration", type=int, default=1)
     args = parser.parse_args()
 
     if args.debug:
@@ -147,7 +149,7 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         start_step=args.start_step,
         total_step=args.total_step,
-        sample_per_iteration=1,
+        sample_per_iteration=args.sample_per_iteration,
         evaluate_env=eval_env,
         save_policy_every=int(args.total_step / 40),
         warmup_with="random",
@@ -167,3 +169,6 @@ if __name__ == "__main__":
     with open(os.path.join(exp_dir, 'config.yaml'), 'w') as yaml_file:
         yaml.dump(args_dict, yaml_file)
     trainer.run(train_key)
+
+    del buffer
+    gc.collect()

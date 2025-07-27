@@ -22,7 +22,7 @@ __pycache__/
 /scripts/inspect_results.py
 /scripts/inspect_results_step.py
 /scripts/evaluate.py
-/scripts/evaluate_rf.py
+# /scripts/evaluate_rf.py
 /scripts/evaluate_rf_time.py
 /scripts/evaluate_mf.py
 /scripts/evaluate_sdac.py

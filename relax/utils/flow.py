@@ -101,6 +101,11 @@ class MeanFlow:
         t_seq = jnp.arange(self.num_timesteps)
         _, x = jax.lax.scan(body_fn, x, t_seq)
         return x
+    
+    def p_sample_fast(self, model: FlowModel, shape: Tuple[int, ...]) -> jax.Array:
+        x = jnp.zeros(shape)
+        drift = model(x, 0, 1)
+        return -drift
 
     def q_sample(self, t: int, x_start: jax.Array, noise: jax.Array):
         return (1 - t) * x_start + t * noise

@@ -6,6 +6,8 @@ from collections import defaultdict
 
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import IterableDataset, default_collate
 from jax.tree_util import tree_map
 
@@ -27,7 +29,46 @@ def load_episode(fn):
         episode = np.load(f)
         episode = {k: episode[k] for k in episode.keys()}
         return episode
+    
 
+class RandomShiftsAug(nn.Module):
+    def __init__(self, pad):
+        super().__init__()
+        self.pad = pad
+
+    def forward(self, x):
+        x = torch.from_numpy(x).to(device=torch.device('cpu'), dtype=torch.float32)
+        if len(x.shape) == 1:
+            x = x.reshape(1, -1)
+        x = x.reshape(x.shape[0], -1, 84, 84)
+        n, c, h, w = x.size()
+        assert h == w
+        padding = tuple([self.pad] * 4)
+        x = F.pad(x, padding, 'replicate')
+        eps = 1.0 / (h + 2 * self.pad)
+        arange = torch.linspace(-1.0 + eps,
+                                1.0 - eps,
+                                h + 2 * self.pad,
+                                device=x.device,
+                                dtype=x.dtype)[:h]
+        arange = arange.unsqueeze(0).repeat(h, 1).unsqueeze(2)
+        base_grid = torch.cat([arange, arange.transpose(1, 0)], dim=2)
+        base_grid = base_grid.unsqueeze(0).repeat(n, 1, 1, 1)
+
+        shift = torch.randint(0,
+                              2 * self.pad + 1,
+                              size=(n, 1, 1, 2),
+                              device=x.device,
+                              dtype=x.dtype)
+        shift *= 2.0 / (h + 2 * self.pad)
+
+        grid = base_grid + shift
+        x = F.grid_sample(x,
+                        grid,
+                        padding_mode='zeros',
+                        align_corners=False)
+        x = x.reshape(x.shape[0], -1).squeeze()
+        return  x.detach().cpu().numpy()
 
 class ReplayBufferStorage:
     def __init__(self, data_specs, replay_dir, num_envs):
@@ -96,7 +137,7 @@ class ReplayBufferStorage:
 
 class ReplayBuffer(IterableDataset):
     def __init__(self, replay_dir, max_size, num_workers, nstep, discount,
-                 fetch_every, save_snapshot):
+                 fetch_every, save_snapshot, augment=False):
         self._replay_dir = replay_dir
         self._size = 0
         self._max_size = max_size
@@ -108,6 +149,9 @@ class ReplayBuffer(IterableDataset):
         self._fetch_every = fetch_every
         self._samples_since_last_fetch = fetch_every
         self._save_snapshot = save_snapshot
+        self._augment = augment
+        if self._augment:
+            self._aug = RandomShiftsAug(pad=4)
 
     def _sample_episode(self):
         eps_fn = random.choice(self._episode_fns)
@@ -174,6 +218,10 @@ class ReplayBuffer(IterableDataset):
             reward += discount * step_reward
             # discount *= episode['discount'][idx + i] * self._discount
             discount *= self._discount
+        #data aug
+        if self._augment:
+            obs = self._aug(obs)
+            next_obs = self._aug(next_obs)
         return (obs, action, reward, next_obs, discount)
 
     def __iter__(self):

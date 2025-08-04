@@ -49,7 +49,9 @@ class RFNet_V:
             return self.policy(policy_params, obs, x, t)
 
         def sample(key: jax.Array) -> Union[jax.Array, jax.Array]:
-            act = self.flow.p_sample(key, model_fn, (*obs.shape[:-1], self.act_dim))
+            sample_key, gnoise_key = jax.random.split(key, 2)
+            act = self.flow.p_sample(sample_key, model_fn, (*obs.shape[:-1], self.act_dim))
+            act = act + jax.random.normal(gnoise_key, act.shape) * jnp.exp(log_alpha) * self.noise_scale
             q1 = self.q(q1_params, obs, act)
             q2 = self.q(q2_params, obs, act)
             q = jnp.minimum(q1, q2)
@@ -63,7 +65,7 @@ class RFNet_V:
             acts, qs = jax.vmap(sample)(keys)
             q_best_ind = jnp.argmax(qs, axis=0, keepdims=True)
             act = jnp.take_along_axis(acts, q_best_ind[..., None], axis=0).squeeze(axis=0)
-        act = act + jax.random.normal(noise_key, act.shape) * jnp.exp(log_alpha) * self.noise_scale
+        # act = act + jax.random.normal(noise_key, act.shape) * jnp.exp(log_alpha) * self.noise_scale
         return act
     
     def get_action_full(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:

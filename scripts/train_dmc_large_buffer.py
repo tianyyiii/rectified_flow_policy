@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_step", type=int, default=1)
     parser.add_argument("--reward_scale", type=float, default=1.0)
     parser.add_argument("--sample_per_iteration", type=int, default=1)
+    parser.add_argument("--temperature", type=float, default=1.0)
     args = parser.parse_args()
 
     if args.debug:
@@ -103,10 +104,12 @@ if __name__ == "__main__":
                                           noise_scale=args.noise_scale,
                                           target_entropy_scale=args.target_entropy_scale)
         algorithm = RF_V(agent, params, gamma=args.gamma, lr=args.lr, alpha_lr=args.alpha_lr, 
-                           delay_alpha_update=args.delay_alpha_update,
-                             lr_schedule_end=args.lr_schedule_end,
-                             use_ema=args.use_ema_policy,
-                             reward_scale=args.reward_scale)
+                            delay_alpha_update=args.delay_alpha_update,
+                            lr_schedule_end=args.lr_schedule_end,
+                            use_ema=args.use_ema_policy,
+                            reward_scale=args.reward_scale,
+                            temperature=args.temperature,
+                            total_step=args.total_step)
     elif args.alg == 'mf_v':
         def mish(x: jax.Array):
             return x * jnp.tanh(jax.nn.softplus(x))

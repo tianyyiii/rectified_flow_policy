@@ -71,8 +71,9 @@ class RF_V(Algorithm):
         delay_alpha_update: int = 250,
         delay_update: int = 2,
         reward_scale: float = 1.0,
-        num_samples: int = 200,
         use_ema: bool = True,
+        temperature: float = 1.0,
+        total_step: int = 100000,
     ):
         self.agent = agent
         self.gamma = gamma
@@ -80,7 +81,6 @@ class RF_V(Algorithm):
         self.delay_alpha_update = delay_alpha_update
         self.delay_update = delay_update
         self.reward_scale = reward_scale
-        self.num_samples = num_samples
         self.optim = optax.adam(lr)
         lr_schedule = optax.schedules.linear_schedule(
             init_value=lr,
@@ -109,6 +109,8 @@ class RF_V(Algorithm):
             running_std=jnp.float32(1.0)
         )
         self.use_ema = use_ema
+        self.temperature = temperature
+        self.total_step = total_step
 
         @jax.jit
         def stateless_update(
@@ -138,7 +140,9 @@ class RF_V(Algorithm):
                 q = jnp.minimum(q1, q2)
                 return q
 
+            current_noise_scale = 1 - (step / self.total_step)
             next_action = self.agent.get_action(next_eval_key, (policy_params, log_alpha, q1_params, q2_params, encoder_params), next_obs)
+            # next_action = self.agent.get_action(next_eval_key, (policy_params, jnp.log(current_noise_scale), q1_params, q2_params, encoder_params), next_obs)
             q1_target = self.agent.q(target_q1_params, next_obs, next_action)
             q2_target = self.agent.q(target_q2_params, next_obs, next_action)
             q_target = jnp.minimum(q1_target, q2_target)  # - jnp.exp(log_alpha) * next_logp
@@ -164,17 +168,23 @@ class RF_V(Algorithm):
             def policy_loss_fn(policy_params) -> jax.Array:
                 q_min = get_min_q(next_obs, next_action)
                 q_mean, q_std = q_min.mean(), q_min.std()
-                norm_q = (q_min - running_mean) / running_std
-                scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
+
+                # norm_q = (q_min - running_mean) / running_std
+                norm_q = q_min / running_std
+                # norm_q = q_min
+
+                # scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
+                # scaled_q = norm_q / jnp.exp(log_alpha)
+                scaled_q = norm_q / self.temperature
                 q_weights = jnp.exp(scaled_q)
                 def denoiser(t, x):
                     return self.agent.policy(policy_params, next_obs, x, t)
                 t = jax.random.uniform(flow_time_key, shape=(next_obs.shape[0],), minval=0.0, maxval=1.0)
                 loss = self.agent.flow.weighted_p_loss(flow_noise_key, q_weights, denoiser, t,
                                                             jax.lax.stop_gradient(next_action))
-                return loss, (q_weights, scaled_q, q_mean, q_std)
+                return loss, (q_weights, scaled_q, q_mean, q_std, norm_q)
 
-            (total_loss, (q_weights, scaled_q, q_mean, q_std)), policy_grads = jax.value_and_grad(policy_loss_fn, has_aux=True)(policy_params)
+            (total_loss, (q_weights, scaled_q, q_mean, q_std, norm_q)), policy_grads = jax.value_and_grad(policy_loss_fn, has_aux=True)(policy_params)
 
             # update alpha
             def log_alpha_loss_fn(log_alpha: jax.Array) -> jax.Array:
@@ -246,6 +256,10 @@ class RF_V(Algorithm):
                 "q_weights_max": jnp.max(q_weights),
                 "scale_q_mean": jnp.mean(scaled_q),
                 "scale_q_std": jnp.std(scaled_q),
+                "norm_q_mean": jnp.mean(norm_q),
+                "norm_q_std": jnp.std(norm_q),
+                "norm_q_max": jnp.max(norm_q),
+                "norm_q_min": jnp.min(norm_q),
                 "running_q_mean": new_running_mean,
                 "running_q_std": new_running_std,
                 "entropy_approx": 0.5 * self.agent.act_dim * jnp.log( 2 * jnp.pi * jnp.exp(1) * (0.1 * jnp.exp(log_alpha)) ** 2),

@@ -65,7 +65,7 @@ class RFNet_V:
             acts, qs = jax.vmap(sample)(keys)
             q_best_ind = jnp.argmax(qs, axis=0, keepdims=True)
             act = jnp.take_along_axis(acts, q_best_ind[..., None], axis=0).squeeze(axis=0)
-        # act = act + jax.random.normal(noise_key, act.shape) * jnp.exp(log_alpha) * self.noise_scale
+        # act = act + jax.random.normal(noise_key, act.shape) * jnp.exp(log_alpha) * self.noise_scale / 2 
         return act
     
     def get_action_full(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:

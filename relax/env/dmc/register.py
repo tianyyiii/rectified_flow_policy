@@ -18,11 +18,14 @@ def register_dm_control_envs():
         ("walker", "walk"),
         ("cheetah", "run"),
         ("finger", "turn_hard"),
+        ("finger", "spin"),
         ("dog", "stand"),
         ("dog", "run"),
         ("hopper", "hop"),
+        ("hopper", "stand"),
         ("cartpole", "balance"),
-        ("acrobot", "swingup")
+        ("acrobot", "swingup"),
+        ("cup", "catch"),
     ]
 
     for domain, task in dm_control_envs:

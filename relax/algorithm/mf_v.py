@@ -74,6 +74,7 @@ class MF_V(Algorithm):
         reward_scale: float = 1.0,
         num_samples: int = 200,
         use_ema: bool = True,
+        temperature: float = 1.0,
     ):
         self.agent = agent
         self.gamma = gamma
@@ -110,6 +111,7 @@ class MF_V(Algorithm):
             running_std=jnp.float32(1.0)
         )
         self.use_ema = use_ema
+        self.temperature = temperature
 
         @jax.jit
         def stateless_update(
@@ -165,8 +167,10 @@ class MF_V(Algorithm):
             def policy_loss_fn(policy_params) -> jax.Array:
                 q_min = get_min_q(next_obs, next_action)
                 q_mean, q_std = q_min.mean(), q_min.std()
-                norm_q = q_min - running_mean / running_std
-                scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
+                # norm_q = q_min - running_mean / running_std
+                # scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
+                norm_q = q_min / running_std
+                scaled_q = norm_q / self.temperature
                 q_weights = jnp.exp(scaled_q)
                 def denoiser(x, r, t):
                     return self.agent.policy(policy_params, next_obs, x, r, t)

@@ -123,7 +123,8 @@ if __name__ == "__main__":
                            delay_alpha_update=args.delay_alpha_update,
                              lr_schedule_end=args.lr_schedule_end,
                              use_ema=args.use_ema_policy,
-                             reward_scale=args.reward_scale)
+                             reward_scale=args.reward_scale,
+                             temperature=args.temperature)
     elif args.alg == 'mf2_v':
         def mish(x: jax.Array):
             return x * jnp.tanh(jax.nn.softplus(x))
@@ -137,7 +138,8 @@ if __name__ == "__main__":
                            delay_alpha_update=args.delay_alpha_update,
                              lr_schedule_end=args.lr_schedule_end,
                              use_ema=args.use_ema_policy,
-                             reward_scale=args.reward_scale)
+                             reward_scale=args.reward_scale,
+                             )
     elif args.alg == "sac_v":
         agent, params = create_sac_net_visual(init_network_key, obs_dim, latent_obs_dim, act_dim, hidden_sizes, gelu)
         algorithm = SAC_V(agent, params, lr=args.lr)

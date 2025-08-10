@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import IterableDataset, default_collate
+import torch.multiprocessing as mp
 from jax.tree_util import tree_map
 
 def episode_len(episode):
@@ -251,9 +252,10 @@ def make_replay_loader(replay_dir, max_size, batch_size, num_workers,
     loader = torch.utils.data.DataLoader(iterable,
                                          batch_size=batch_size,
                                          num_workers=num_workers,
-                                         pin_memory=True,
+                                         pin_memory=False,
                                          worker_init_fn=_worker_init_fn,
-                                         collate_fn=numpy_collate)
+                                         collate_fn=numpy_collate,
+                                         multiprocessing_context=mp.get_context("spawn"))
     return loader
 
 # def make_replay_loader(replay_dir, max_size, batch_size, save_snapshot, nstep, discount):

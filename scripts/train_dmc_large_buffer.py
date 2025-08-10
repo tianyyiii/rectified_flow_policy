@@ -63,6 +63,9 @@ if __name__ == "__main__":
         from jax import config
         config.update("jax_disable_jit", True)
 
+    import torch.multiprocessing as mp
+    mp.set_start_method('spawn')
+
     master_seed = args.seed
     master_rng, _ = seeding(master_seed)
     env_seed, env_action_seed, eval_env_seed, buffer_seed, init_network_seed, train_seed = map(

@@ -118,7 +118,8 @@ class MF_V(Algorithm):
             key: jax.Array, state: Diffv2TrainState, data: Experience
         ) -> Tuple[Diffv2OptStates, Metric]:
             obs, action, reward, next_obs, discount = data
-            action = np.squeeze(action)
+            if len(action.shape) == 2 and action.shape[0] == 1:
+                action = np.squeeze(action, axis=0)
             reward = np.squeeze(reward)
             discount = np.squeeze(discount)
             q1_params, q2_params, target_q1_params, target_q2_params, policy_params, target_policy_params, log_alpha, encoder_params = state.params

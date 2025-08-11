@@ -24,8 +24,10 @@ def register_dm_control_envs():
         ("hopper", "hop"),
         ("hopper", "stand"),
         ("cartpole", "balance"),
+        ("cartpole", "swingup_sparse"),
         ("acrobot", "swingup"),
         ("cup", "catch"),
+        ("reacher", "hard"),
     ]
 
     for domain, task in dm_control_envs:

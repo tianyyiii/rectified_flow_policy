@@ -122,7 +122,7 @@ class RF(Algorithm):
             def policy_loss_fn(policy_params) -> jax.Array:
                 q_min = get_min_q(next_obs, next_action)
                 q_mean, q_std = q_min.mean(), q_min.std()
-                #need to be modified
+                # modified in rf_v of the visual branch
                 norm_q = q_min - running_mean / running_std
                 scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
                 q_weights = jnp.exp(scaled_q)

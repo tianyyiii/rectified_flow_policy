@@ -21,13 +21,22 @@ def register_dm_control_envs():
         ("finger", "spin"),
         ("dog", "stand"),
         ("dog", "run"),
+        ("dog", "fetch"),
+        ("dog", "trot"),
+        ("dog", "walk"),
         ("hopper", "hop"),
         ("hopper", "stand"),
         ("cartpole", "balance"),
+        ("cartpole", "swingup"),
         ("cartpole", "swingup_sparse"),
         ("acrobot", "swingup"),
         ("cup", "catch"),
         ("reacher", "hard"),
+        ("manipulator", "bring_ball"),
+        ("stacker", "stack_2"),
+        ("humanoid", "stand"),
+        ("humanoid", "walk"),
+        ("pendulum", "swingup"),
     ]
 
     for domain, task in dm_control_envs:

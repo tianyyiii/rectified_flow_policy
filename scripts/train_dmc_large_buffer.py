@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--alg", type=str, default="rf_v")
     parser.add_argument("--env", type=str, default="Ant-v4")
     parser.add_argument("--suffix", type=str, default="test_use_atp1")
-    parser.add_argument("--num_vec_envs", type=int, default=5)
+    parser.add_argument("--num_vec_envs", type=int, default=8)
     parser.add_argument("--hidden_num", type=int, default=3)
     parser.add_argument("--hidden_dim", type=int, default=256)
     parser.add_argument("--diffusion_steps", type=int, default=20)
@@ -58,6 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_step", type=int, default=1)
     parser.add_argument("--reward_scale", type=float, default=1.0)
     parser.add_argument("--sample_per_iteration", type=int, default=1)
+    parser.add_argument("--update_per_iteration", type=int, default=4)
     parser.add_argument("--temperature", type=float, default=1.0)
     args = parser.parse_args()
 
@@ -173,6 +174,7 @@ if __name__ == "__main__":
         start_step=args.start_step,
         total_step=args.total_step,
         sample_per_iteration=args.sample_per_iteration,
+        update_per_iteration=args.update_per_iteration,
         evaluate_env=eval_env,
         save_policy_every=int(args.total_step / 40),
         warmup_with="random",

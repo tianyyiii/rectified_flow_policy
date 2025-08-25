@@ -30,6 +30,9 @@ __pycache__/
 /scripts/evaluate_rf_v.py
 /scripts/evaluate_mf_v.py
 /scripts/render_rf_v.py
+/scripts/evaluate_sac_time.py
+/scripts/evaluate_mf_time.py
+/scripts/evaluate_sdac_time.py
 
 */.ipynb_checkpoints
 *.png

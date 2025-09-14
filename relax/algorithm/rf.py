@@ -44,6 +44,7 @@ class RF(Algorithm):
         reward_scale: float = 0.2,
         num_samples: int = 200,
         use_ema: bool = True,
+        temperature: float = 3.0,
     ):
         self.agent = agent
         self.gamma = gamma
@@ -78,6 +79,7 @@ class RF(Algorithm):
             running_std=jnp.float32(1.0)
         )
         self.use_ema = use_ema
+        self.temperature = temperature
 
         @jax.jit
         def stateless_update(
@@ -123,9 +125,13 @@ class RF(Algorithm):
                 q_min = get_min_q(next_obs, next_action)
                 q_mean, q_std = q_min.mean(), q_min.std()
                 # modified in rf_v of the visual branch
-                norm_q = q_min - running_mean / running_std
-                scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
+                # norm_q = q_min - running_mean / running_std
+                # scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
+                # q_weights = jnp.exp(scaled_q)
+                norm_q = q_min / running_std
+                scaled_q = norm_q / self.temperature
                 q_weights = jnp.exp(scaled_q)
+                
                 def denoiser(t, x):
                     return self.agent.policy(policy_params, next_obs, x, t)
                 t = jax.random.uniform(flow_time_key, shape=(next_obs.shape[0],), minval=0.0, maxval=1.0)

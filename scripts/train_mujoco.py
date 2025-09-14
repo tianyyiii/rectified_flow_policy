@@ -59,6 +59,7 @@ if __name__ == "__main__":
     parser.add_argument("--replay_buffer_size", type=int, default=int(1e6))
     parser.add_argument("--debug", action='store_true', default=False)
     parser.add_argument("--use_ema_policy", default=True, action="store_true")
+    parser.add_argument("--temperature", type=float, default=3.0)
     args = parser.parse_args()
 
     if args.debug:

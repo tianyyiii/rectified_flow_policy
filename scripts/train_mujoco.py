@@ -112,7 +112,8 @@ if __name__ == "__main__":
         algorithm = RF(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 
                            delay_alpha_update=args.delay_alpha_update,
                              lr_schedule_end=args.lr_schedule_end,
-                             use_ema=args.use_ema_policy)
+                             use_ema=args.use_ema_policy,
+                             temperature=args.temperature)
     elif args.alg == 'rf2':
         def mish(x: jax.Array):
             return x * jnp.tanh(jax.nn.softplus(x))
@@ -138,7 +139,8 @@ if __name__ == "__main__":
         algorithm = MF(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 
                            delay_alpha_update=args.delay_alpha_update,
                              lr_schedule_end=args.lr_schedule_end,
-                             use_ema=args.use_ema_policy)
+                             use_ema=args.use_ema_policy,
+                             temperature=args.temperature)
     elif args.alg == 'mf2':
         def mish(x: jax.Array):
             return x * jnp.tanh(jax.nn.softplus(x))
@@ -158,20 +160,12 @@ if __name__ == "__main__":
     elif args.alg == "sac":
         agent, params = create_sac_net(init_network_key, obs_dim, act_dim, hidden_sizes, gelu)
         algorithm = SAC(agent, params, lr=args.lr)
-    elif args.alg == "dsact":
-        agent, params = create_dsact_net(init_network_key, obs_dim, act_dim, hidden_sizes, gelu)
-        algorithm = DSACT(agent, params, lr=args.lr)
     elif args.alg == "dacer":
         def mish(x: jax.Array):
             return x * jnp.tanh(jax.nn.softplus(x))
         agent, params = create_dacer_net(init_network_key, obs_dim, act_dim, hidden_sizes, diffusion_hidden_sizes, mish, 
                                          num_timesteps=args.diffusion_steps)
         algorithm = DACER(agent, params, lr=args.lr, lr_schedule_end=args.lr_schedule_end)
-    elif args.alg == "dacer_doubleq":
-        def mish(x: jax.Array):
-            return x * jnp.tanh(jax.nn.softplus(x))
-        agent, params = create_dacer_doubleq_net(init_network_key, obs_dim, act_dim, hidden_sizes, diffusion_hidden_sizes, mish, num_timesteps=args.diffusion_steps)
-        algorithm = DACERDoubleQ(agent, params, lr=args.lr)
     elif args.alg == "dipo":
         diffusion_buffer = TreeBuffer.from_example(
             ObsActionPair.create_example(obs_dim, act_dim),

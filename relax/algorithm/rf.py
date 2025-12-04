@@ -120,21 +120,18 @@ class RF(Algorithm):
             q1_params = optax.apply_updates(q1_params, q1_update)
             q2_params = optax.apply_updates(q2_params, q2_update)
 
-
             def policy_loss_fn(policy_params) -> jax.Array:
                 q_min = get_min_q(next_obs, next_action)
                 q_mean, q_std = q_min.mean(), q_min.std()
-                # norm_q = q_min - running_mean / running_std
-                # scaled_q = norm_q.clip(-3., 3.) / jnp.exp(log_alpha)
-                # q_weights = jnp.exp(scaled_q)
-                norm_q = q_min / running_std
-                scaled_q = norm_q / self.temperature
-                q_weights = jnp.exp(scaled_q)
-                
+                norm_q = (q_min - running_mean) / running_std
+                scaled_q = norm_q.clip(-3., 3.)
+                q_weights = scaled_q / 6. + 0.5
                 def denoiser(t, x):
                     return self.agent.policy(policy_params, next_obs, x, t)
+                def denoiser_old(t, x):
+                    return self.agent.policy(target_policy_params, next_obs, x, t)
                 t = jax.random.uniform(flow_time_key, shape=(next_obs.shape[0],), minval=0.0, maxval=1.0)
-                loss = self.agent.flow.weighted_p_loss(flow_noise_key, q_weights, denoiser, t,
+                loss = self.agent.flow.nft_p_loss(flow_noise_key, q_weights, denoiser, denoiser_old, t,
                                                             jax.lax.stop_gradient(next_action))
                 return loss, (q_weights, scaled_q, q_mean, q_std)
 
@@ -183,7 +180,8 @@ class RF(Algorithm):
 
             target_q1_params = delay_target_update(q1_params, target_q1_params, self.tau)
             target_q2_params = delay_target_update(q2_params, target_q2_params, self.tau)
-            target_policy_params = delay_target_update(policy_params, target_policy_params, self.tau)
+            # target_policy_params = delay_target_update(policy_params, target_policy_params, self.tau)
+            target_policy_params = delay_target_update(policy_params, target_policy_params, 0.05)
 
             new_running_mean = running_mean + 0.001 * (q_mean - running_mean)
             new_running_std = running_std + 0.001 * (q_std - running_std)

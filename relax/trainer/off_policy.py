@@ -84,7 +84,7 @@ class OffPolicyTrainer:
         self.evaluator = subprocess.Popen(
             [
                 sys.executable,
-                "-m", "relax.trainer.evaluator",
+                "-m", "relax.trainer.evaluator_variance",
                 str(self.log_path),
                 "--env", self.env.spec.id,
                 "--num_episodes", str(self.evaluate_n_episode),

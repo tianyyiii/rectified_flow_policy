@@ -35,10 +35,6 @@ class MFNet:
     @property
     def flow(self) -> MeanFlow:
         return MeanFlow(self.num_timesteps)
-    
-    @property
-    def flow_test(self) -> MeanFlow:
-        return MeanFlow(self.num_timesteps_test)
 
     def get_action(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
         policy_params, log_alpha, q1_params, q2_params = policy_params
@@ -80,31 +76,6 @@ class MFNet:
         act = sample(key)
         return act
     
-    def get_vanilla_action_step(self, key: jax.Array, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
-        policy_params, _, _, _ = policy_params
-
-        def model_fn(x, r, t):
-            return self.policy(policy_params, obs, x, r, t)
-
-        def sample(key: jax.Array) -> Union[jax.Array, jax.Array]:
-            act = self.flow_test.p_sample_traj(key, model_fn, (*obs.shape[:-1], self.act_dim))
-            return act
-
-        act = sample(key)
-        return act
-    
-    def get_vanilla_action_fast(self, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
-
-        def model_fn(x, r, t):
-            return self.policy(policy_params, obs, x, r, t)
-
-        def sample() -> Union[jax.Array, jax.Array]:
-            act = self.flow_test.p_sample_fast(model_fn, (*obs.shape[:-1], self.act_dim))
-            return act
-
-        act = sample()
-        return act
-
     def get_deterministic_action(self, policy_params: hk.Params, obs: jax.Array) -> jax.Array:
         key = random_key_from_data(obs)
         policy_params, log_alpha, q1_params, q2_params = policy_params

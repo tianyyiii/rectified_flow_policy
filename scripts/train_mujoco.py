@@ -15,6 +15,7 @@ from relax.algorithm.qvpo import QVPO
 from relax.algorithm.sdac import SDAC
 from relax.algorithm.rf import RF
 from relax.algorithm.mf import MF
+from relax.algorithm.fm import FM
 from relax.buffer import TreeBuffer
 from relax.network.sac import create_sac_net
 from relax.network.dacer import create_dacer_net
@@ -23,6 +24,7 @@ from relax.network.dipo import create_dipo_net
 from relax.network.sdac import create_sdac_net
 from relax.network.rf import create_rf_net
 from relax.network.mf import create_mf_net
+from relax.network.fm import create_fm_net
 from relax.network.qvpo import create_qvpo_net
 from relax.trainer.off_policy import OffPolicyTrainer
 from relax.env import create_env, create_vector_env
@@ -56,6 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action='store_true', default=False)
     parser.add_argument("--use_ema_policy", default=True, action="store_true")
     parser.add_argument("--temperature", type=float, default=3.0)
+    parser.add_argument("--flow_map_type", type=str, default="shortcut")
     args = parser.parse_args()
 
     if args.debug:
@@ -120,6 +123,21 @@ if __name__ == "__main__":
                                           noise_scale=args.noise_scale,
                                           target_entropy_scale=args.target_entropy_scale)
         algorithm = MF(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 
+                           delay_alpha_update=args.delay_alpha_update,
+                             lr_schedule_end=args.lr_schedule_end,
+                             use_ema=args.use_ema_policy,
+                             temperature=args.temperature)
+    elif args.alg == 'fm':
+        def mish(x: jax.Array):
+            return x * jnp.tanh(jax.nn.softplus(x))
+        agent, params = create_fm_net(init_network_key, obs_dim, act_dim, hidden_sizes, diffusion_hidden_sizes, mish,
+                                          num_timesteps=args.diffusion_steps, 
+                                          num_timesteps_test=args.diffusion_steps_test,
+                                          num_particles=args.num_particles, 
+                                          noise_scale=args.noise_scale,
+                                          target_entropy_scale=args.target_entropy_scale,
+                                          flow_map_type=args.flow_map_type)
+        algorithm = FM(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 
                            delay_alpha_update=args.delay_alpha_update,
                              lr_schedule_end=args.lr_schedule_end,
                              use_ema=args.use_ema_policy,
